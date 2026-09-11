@@ -71,6 +71,29 @@ def call_openai(
     """
     # TODO: import OpenAI, tạo client, gọi chat.completions.create,
     #       đo start/end time, trả về (response_text, latency)
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    start = time.perf_counter()
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+    )
+    latency = time.perf_counter() - start
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    start = time.perf_counter()
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+    )
+    latency = time.perf_counter() - start
+    return response.choices[0].message.content, latency
     raise NotImplementedError("Implement call_openai")
 
 
@@ -93,6 +116,13 @@ def call_openai_mini(
         Tái sử dụng call_openai() với model=OPENAI_MINI_MODEL — 1 dòng code.
     """
     # TODO: gọi call_openai với model=OPENAI_MINI_MODEL
+    return call_openai(
+        prompt,
+        model=OPENAI_MINI_MODEL,
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+    )
     raise NotImplementedError("Implement call_openai_mini")
 
 
@@ -117,6 +147,19 @@ def compare_models(prompt: str) -> dict:
         (0.75 từ ≈ 1 token — ước lượng thô; Part 2 sẽ tính chính xác hơn)
     """
     # TODO: gọi call_openai và call_openai_mini, ghép dict kết quả
+    # 1. Gọi lần lượt 2 model với cùng prompt
+    gpt4o_response, gpt4o_latency = call_openai(prompt)
+    mini_response, mini_latency = call_openai_mini(prompt)
+    # 2. Ước tính chi phí output của GPT-4o (ước lượng: 0.75 từ ≈ 1 token)
+    cost = (len(gpt4o_response.split()) / 0.75) / 1000 * PRICING_PER_1K_TOKENS["gpt-4o"]["output"]
+    # 3. Trả về dict đúng chuẩn 5 key theo yêu cầu
+    return {
+        "gpt4o_response": gpt4o_response,
+        "mini_response": mini_response,
+        "gpt4o_latency": gpt4o_latency,
+        "mini_latency": mini_latency,
+        "gpt4o_cost_estimate": cost,
+    }
     raise NotImplementedError("Implement compare_models")
 
 
